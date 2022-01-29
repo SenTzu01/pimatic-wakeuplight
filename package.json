@@ -1,0 +1,42 @@
+{
+  "name": "pimatic-wakeuplight",
+  "description": "Pimatic Plugin to use a dimmable Pimatic light device as a wakeuplight",
+  "author": {
+    "name": "Danny Wigmans"
+  },
+  "main": "wakeuplight",
+  "keywords": [
+    "Pimatic",
+    "Light",
+    "Fader",
+    "Wakeup Light"
+  ],
+  "version": "0.0.1",
+  "homepage": "https://github.com/sentzu01/pimatic-wakeuplight",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sentzu01/pimatic-wakeuplight.git"
+  },
+  "license": "GPL-3.0",
+  "configSchema": "wakeuplight-config-schema.coffee",
+  "dependencies": {
+    "pimatic-plugin-commons": "^0.9.8"
+  },
+  "optionalDependencies": {},
+  "peerDependencies": {
+    "pimatic": "0.9.*"
+  },
+  "engines": {
+    "node": ">=4",
+    "npm": ">1.1.x"
+  },
+  "bugs": {
+    "url": "https://github.com/sentzu01/pimatic-wakeuplight/issues"
+  },
+  "maintainers": [
+    {
+      "name": "sentzu01",
+      "email": "sentzu01@gmail.com"
+    }
+  ]
+}
