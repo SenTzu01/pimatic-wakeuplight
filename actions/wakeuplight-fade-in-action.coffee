@@ -70,7 +70,7 @@ module.exports = (env) ->
       dimlevel += Math.floor(100 / (time / 1000))
       if dimlevel <= 100
         @_device.changeDimlevelTo(dimlevel)
-        @_faderTimeout = setTimeout(@_fadeIn, 1000, time, dimlevel )
+        @_faderTimeout = setTimeout(@_fade, 1000, time, dimlevel )
       
       else
         @_device.changeDimlevelTo(100)
