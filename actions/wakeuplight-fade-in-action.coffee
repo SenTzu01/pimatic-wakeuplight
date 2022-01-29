@@ -75,7 +75,7 @@ module.exports = (env) ->
       else
         @_device.changeDimlevelTo(100)
         clearTimeout(@_faderTimeout)
-        env.logger.info("Fade in of #{device.name} done")
+        env.logger.info("Fade in of #{@_device.name} done")
         @_faderTimeout = null
     
   return WakeuplightFadeInActionProvider
