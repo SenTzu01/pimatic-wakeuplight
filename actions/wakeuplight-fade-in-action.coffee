@@ -51,6 +51,8 @@ module.exports = (env) ->
     constructor: (@framework, @_device, @_time) ->
       super()
       @_faderTimeout = null
+      @_maxLevel = 100
+      @_minLevel = 0
 
     setup: ->
       @dependOnDevice(@_device)
@@ -63,17 +65,21 @@ module.exports = (env) ->
         if simulate
           return Promise.resolve("Would fade in #{@_device.name} over #{@_time.time} #{@_time.unit}")
         else
-          @_fade(@_time.timeMs, 0)
+          @_device.changeDimlevelTo(@_minLevel)
+          @_fade(@_time.timeMs / 1000, @_minLevel)
           return Promise.resolve("Starting to fade in #{@_device.name} over #{@_time.time} #{@_time.unit}")
      
-    _fade: (time, dimlevel) =>
-      dimlevel += Math.floor(100 / (time / 1000))
-      if dimlevel <= 100
-        @_device.changeDimlevelTo(dimlevel)
-        @_faderTimeout = setTimeout(@_fade, 1000, time, dimlevel )
+    _fade: (time, dimLevel) =>
+      dimLevel += @_maxLevel / time
+      current = Math.floor(dimLevel)
+      if dimLevel < @_maxLevel
+        @_device.getDimlevel().then( (old) =>
+          @_device.changeDimlevelTo(current) if current > old
+          @_faderTimeout = setTimeout(@_fade, 1000, time, dimLevel )
+        )
       
       else
-        @_device.changeDimlevelTo(100)
+        @_device.changeDimlevelTo(@_maxLevel)
         clearTimeout(@_faderTimeout)
         env.logger.info("Fade in of #{@_device.name} done")
         @_faderTimeout = null

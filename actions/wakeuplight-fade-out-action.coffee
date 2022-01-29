@@ -51,6 +51,8 @@ module.exports = (env) ->
     constructor: (@framework, @_device, @_time) ->
       super()
       @_faderTimeout = null
+      @_maxLevel = 100
+      @_minLevel = 0
 
     setup: ->
       @dependOnDevice(@_device)
@@ -63,19 +65,25 @@ module.exports = (env) ->
         if simulate
           return Promise.resolve("Would fade out #{@_device.name} over #{@_time.time} #{@_time.unit}")
         else
-          @_fade(@_time.timeMs, 100)
+          @_device.changeDimlevelTo(@_maxLevel)
+          @_fade(@_time.timeMs / 1000, @_maxLevel)
           return Promise.resolve("Starting to fade out #{@_device.name} over #{@_time.time} #{@_time.unit}")
      
-    _fade: (time, dimlevel) =>
-      dimlevel -= Math.floor(100 / (time / 1000))
-      if dimlevel >= 1
-        @_device.changeDimlevelTo(dimlevel)
-        @_faderTimeout = setTimeout(@_fade, 1000, time, dimlevel )
+    _fade: (time, dimLevel) =>
+      dimLevel -= @_maxLevel / time
+      current = Math.ceil(dimLevel)
+      
+      if dimLevel > @_minLevel
+        @_device.getDimlevel().then( (old) =>
+          @_device.changeDimlevelTo(current) if current < old
+        ).then( () =>
+          @_faderTimeout = setTimeout(@_fade, 1000, time, dimLevel )
+        )
       
       else
-        @_device.changeDimlevelTo(0)
+        @_device.changeDimlevelTo(@_minLevel)
         clearTimeout(@_faderTimeout)
-        env.logger.info("Fade out of #{@_device.name} done")
+        env.logger.info("Fade in of #{@_device.name} done")
         @_faderTimeout = null
     
   return WakeuplightFadeOutActionProvider
