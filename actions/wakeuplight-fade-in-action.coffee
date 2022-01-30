@@ -66,7 +66,6 @@ module.exports = (env) ->
           return Promise.resolve("Would fade in #{@_device.name} over #{@_time.time} #{@_time.unit}")
         else
           @_device.changeDimlevelTo(@_minLevel)
-          @_device.setColor(@_maxlevel) if @_device.hasAction('setColor')
             
           @_fade(@_time.timeMs / 1000, @_minLevel)
           return Promise.resolve("Starting to fade in #{@_device.name} over #{@_time.time} #{@_time.unit}")
@@ -77,12 +76,6 @@ module.exports = (env) ->
       if dimLevel < @_maxLevel
         @_device.getDimlevel().then( (old) =>
           @_device.changeDimlevelTo(current) if current > old
-          if @_device.hasAction('setColor')
-            Promise.delay(500).then( () =>
-              @_device.getColor()
-            ).then( (old) =>
-              @_device.setColor(@_maxLevel-current) if @_maxLevel - current < old
-            )
         ).then() =>
           @_faderTimeout = setTimeout(@_fade, 1000, time, dimLevel )
         )
