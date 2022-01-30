@@ -79,7 +79,7 @@ module.exports = (env) ->
           @_device.changeDimlevelTo(current) if current > old
           if @_device.hasAction('setColor')
             @_device.getColor().then( (old) =>
-              @_device.setColor(@_maxLevel-current) if current < old
+              @_device.setColor(@_maxLevel-current) if @_maxLevel - current < old
             )
           return Promise.resolve()
         ).then( () =>
