@@ -76,7 +76,7 @@ module.exports = (env) ->
       if dimLevel < @_maxLevel
         @_device.getDimlevel().then( (old) =>
           @_device.changeDimlevelTo(current) if current > old
-        ).then() =>
+        ).then(() =>
           @_faderTimeout = setTimeout(@_fade, 1000, time, dimLevel )
         )
       
