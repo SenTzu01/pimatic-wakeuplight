@@ -78,10 +78,11 @@ module.exports = (env) ->
         @_device.getDimlevel().then( (old) =>
           @_device.changeDimlevelTo(current) if current > old
           if @_device.hasAction('setColor')
-            @_device.getColor().then( (old) =>
+            Promise.delay(500).then( () =>
+              @_device.getColor()
+            ).then( (old) =>
               @_device.setColor(@_maxLevel-current) if @_maxLevel - current < old
             )
-          return Promise.resolve()
         ).then( () =>
           @_faderTimeout = setTimeout(@_fade, 1000, time, dimLevel )
         )
