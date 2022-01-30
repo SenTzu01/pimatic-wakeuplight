@@ -82,10 +82,8 @@ module.exports = (env) ->
               @_device.getColor()
             ).then( (old) =>
               @_device.setColor(@_maxLevel-current) if @_maxLevel - current < old
-            )TemPC gebr User uie nekstation1\video
-            dice
-        ).then( 
-        ) =>
+            )
+        ).then() =>
           @_faderTimeout = setTimeout(@_fade, 1000, time, dimLevel )
         )
       
