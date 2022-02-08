@@ -19,33 +19,6 @@ module.exports = (env) ->
       time = null
       max = null
       match = null
-
-      ###
-      # Try to match the input string with:
-      M(input, context).match('fade in ').matchDevice(devices, (next, d) =>
-        if device? and device.id isnt d.id
-          context?.addError(""""#{input.trim()}" is ambiguous.""")
-          return
-        device = d
-      
-        next.match(' over ').matchTimeDuration( (next, ts) =>    
-          time = ts
-          next.or([
-            ( (next) =>
-              match = next.getFullMatch()
-              return next
-            ),
-            ( (next) =>
-              return next.match(' to ').matchNumber( (next, n) =>
-                max = n
-              ).match(' %', (next) =>
-                match = next.getFullMatch()
-              )
-            )
-          ])
-        )
-      )
-      ###
       
       # Try to match the input string with:
       M(input, context).match('fade in ').matchDevice(devices, (next, d) =>
@@ -95,14 +68,15 @@ module.exports = (env) ->
         if simulate
           return Promise.resolve("Would fade in #{@_device.name} over #{@_time.time} #{@_time.unit}")
         else
-          @_device.changeDimlevelTo(@_minLevel)
-            
-          @_fade(@_time.timeMs / 1000, @_minLevel)
+          @_device.getDimlevel().then( (dimlevel) =>  
+            @_fade(@_time.timeMs / 1000, dimlevel)
+          )
           return Promise.resolve("Starting to fade in #{@_device.name} over #{@_time.time} #{@_time.unit}")
      
     _fade: (time, dimLevel) =>
       dimLevel += @_maxLevel / time
       current = Math.floor(dimLevel)
+      
       if dimLevel < @_maxLevel
         @_device.getDimlevel().then( (old) =>
           @_device.changeDimlevelTo(current) if current > old

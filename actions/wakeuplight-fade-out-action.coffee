@@ -17,42 +17,45 @@ module.exports = (env) ->
       
       device = null
       time = null
+      min = null
       match = null
-
       
       # Try to match the input string with:
-      M(input, context)
-        .match('fade out ')
-        .matchDevice(devices, (next, d) =>
-          next.match(' over ')
-            .matchTimeDuration( (next, ts) =>
-              if device? and device.id isnt d.id
-                context?.addError(""""#{input.trim()}" is ambiguous.""")
-                return
-              device = d
+      M(input, context).match('fade out ').matchDevice(devices, (next, d) =>
+        if device? and device.id isnt d.id
+          context?.addError(""""#{input.trim()}" is ambiguous.""")
+          return
+        device = d
+      
+        next.match(' to ').matchNumber( (next, ts) =>    
+          min = ts
+          next.match(' % over ', (next) =>
+            next.matchTimeDuration( (next, ts) =>
               time = ts
-              m = next.match([], optional: yes)
-              match = m.getFullMatch()
+              match = next.getFullMatch()
             )
+          )
         )
+      )
       
       if match?
         assert device?
         assert time?
+        assert min?
         return {
           token: match
           nextInput: input.substring(match.length)
-          actionHandler: new WakeuplightFadeOutActionHandler(@framework, device, time)
+          actionHandler: new WakeuplightFadeOutActionHandler(@framework, device, time, min)
         }
       else
         return null
   
   class WakeuplightFadeOutActionHandler extends env.actions.ActionHandler
-    constructor: (@framework, @_device, @_time) ->
+    constructor: (@framework, @_device, @_time, min) ->
       super()
       @_faderTimeout = null
       @_maxLevel = 100
-      @_minLevel = 0
+      @_minLevel = min ? 0
 
     setup: ->
       @dependOnDevice(@_device)
@@ -65,8 +68,9 @@ module.exports = (env) ->
         if simulate
           return Promise.resolve("Would fade out #{@_device.name} over #{@_time.time} #{@_time.unit}")
         else
-          @_device.changeDimlevelTo(@_maxLevel)
-          @_fade(@_time.timeMs / 1000, @_maxLevel)
+          @_device.getDimlevel().then( (dimlevel) =>
+            @_fade(@_time.timeMs / 1000, @_maxLevel)
+          )
           return Promise.resolve("Starting to fade out #{@_device.name} over #{@_time.time} #{@_time.unit}")
      
     _fade: (time, dimLevel) =>
