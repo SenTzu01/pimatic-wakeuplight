@@ -17,41 +17,71 @@ module.exports = (env) ->
       
       device = null
       time = null
+      max = null
       match = null
 
+      ###
+      # Try to match the input string with:
+      M(input, context).match('fade in ').matchDevice(devices, (next, d) =>
+        if device? and device.id isnt d.id
+          context?.addError(""""#{input.trim()}" is ambiguous.""")
+          return
+        device = d
+      
+        next.match(' over ').matchTimeDuration( (next, ts) =>    
+          time = ts
+          next.or([
+            ( (next) =>
+              match = next.getFullMatch()
+              return next
+            ),
+            ( (next) =>
+              return next.match(' to ').matchNumber( (next, n) =>
+                max = n
+              ).match(' %', (next) =>
+                match = next.getFullMatch()
+              )
+            )
+          ])
+        )
+      )
+      ###
       
       # Try to match the input string with:
-      M(input, context)
-        .match('fade in ')
-        .matchDevice(devices, (next, d) =>
-          next.match(' over ')
-            .matchTimeDuration( (next, ts) =>
-              if device? and device.id isnt d.id
-                context?.addError(""""#{input.trim()}" is ambiguous.""")
-                return
-              device = d
+      M(input, context).match('fade in ').matchDevice(devices, (next, d) =>
+        if device? and device.id isnt d.id
+          context?.addError(""""#{input.trim()}" is ambiguous.""")
+          return
+        device = d
+      
+        next.match(' to ').matchNumber( (next, ts) =>    
+          max = ts
+          next.match(' % over ', (next) =>
+            next.matchTimeDuration( (next, ts) =>
               time = ts
-              m = next.match([], optional: yes)
-              match = m.getFullMatch()
+              match = next.getFullMatch()
             )
+          )
         )
+      )
       
       if match?
         assert device?
+        assert max?
         assert time?
         return {
           token: match
           nextInput: input.substring(match.length)
-          actionHandler: new WakeuplightFadeInActionHandler(@framework, device, time)
+          actionHandler: new WakeuplightFadeInActionHandler(@framework, device, time, max)
         }
       else
         return null
   
   class WakeuplightFadeInActionHandler extends env.actions.ActionHandler
-    constructor: (@framework, @_device, @_time) ->
+    constructor: (@framework, @_device, @_time, max) ->
       super()
       @_faderTimeout = null
-      @_maxLevel = 100
+      @_maxLevel = max ? 100
       @_minLevel = 0
 
     setup: ->
