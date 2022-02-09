@@ -69,15 +69,16 @@ module.exports = (env) ->
           return Promise.resolve("Would fade out #{@_device.name} over #{@_time.time} #{@_time.unit}")
         else
           @_device.getDimlevel().then( (dimlevel) =>
-            @_fade(@_time.timeMs / 1000, @_maxLevel)
+            @_maxLevel = dimlevel
+            @_fade(@_time.timeMs / 1000, dimlevel)
           )
           return Promise.resolve("Starting to fade out #{@_device.name} over #{@_time.time} #{@_time.unit}")
      
     _fade: (time, dimLevel) =>
       dimLevel -= @_maxLevel / time
-      current = Math.ceil(dimLevel)
+      current = Math.round(dimLevel)
       
-      if dimLevel > @_minLevel
+      if current > @_minLevel
         @_device.getDimlevel().then( (old) =>
           @_device.changeDimlevelTo(current) if current < old
         ).then( () =>
@@ -85,9 +86,9 @@ module.exports = (env) ->
         )
       
       else
-        @_device.changeDimlevelTo(@_minLevel)
+        @_device.turnOff()
         clearTimeout(@_faderTimeout)
-        env.logger.info("Fade in of #{@_device.name} done")
+        env.logger.info("Fade out of #{@_device.name} done")
         @_faderTimeout = null
     
   return WakeuplightFadeOutActionProvider

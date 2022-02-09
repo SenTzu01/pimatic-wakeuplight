@@ -75,13 +75,15 @@ module.exports = (env) ->
      
     _fade: (time, dimLevel) =>
       dimLevel += @_maxLevel / time
-      current = Math.floor(dimLevel)
+      current = Math.round(dimLevel)
       
-      if dimLevel < @_maxLevel
+      if current < @_maxLevel
         @_device.getDimlevel().then( (old) =>
           @_device.changeDimlevelTo(current) if current > old
+        
         ).then(() =>
           @_faderTimeout = setTimeout(@_fade, 1000, time, dimLevel )
+        
         )
       
       else
