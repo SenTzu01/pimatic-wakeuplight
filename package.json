@@ -11,7 +11,7 @@
     "Fader",
     "Wakeup Light"
   ],
-  "version": "0.0.3",
+  "version": "0.0.4",
   "homepage": "https://github.com/sentzu01/pimatic-wakeuplight",
   "repository": {
     "type": "git",
