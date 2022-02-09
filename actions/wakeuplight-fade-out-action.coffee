@@ -56,7 +56,6 @@ module.exports = (env) ->
       @_faderTimeout = null
       @_maxLevel = 100
       @_minLevel = min ? 0
-      console.log(@_minLevel)
 
     setup: ->
       @dependOnDevice(@_device)
