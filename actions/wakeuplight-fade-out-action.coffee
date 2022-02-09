@@ -56,6 +56,7 @@ module.exports = (env) ->
       @_faderTimeout = null
       @_maxLevel = 100
       @_minLevel = min ? 0
+      console.log(@_minLevel)
 
     setup: ->
       @dependOnDevice(@_device)
@@ -78,7 +79,7 @@ module.exports = (env) ->
       dimLevel -= @_maxLevel / time
       current = Math.round(dimLevel)
       
-      if current > @_minLevel
+      if current >= @_minLevel
         @_device.getDimlevel().then( (old) =>
           @_device.changeDimlevelTo(current) if current < old
         ).then( () =>
@@ -86,7 +87,7 @@ module.exports = (env) ->
         )
       
       else
-        @_device.turnOff()
+        @_device.turnOff() if @_minLevel is 0
         clearTimeout(@_faderTimeout)
         env.logger.info("Fade out of #{@_device.name} done")
         @_faderTimeout = null
