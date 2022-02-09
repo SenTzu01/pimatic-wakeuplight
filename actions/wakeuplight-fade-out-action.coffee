@@ -90,5 +90,10 @@ module.exports = (env) ->
         clearTimeout(@_faderTimeout)
         env.logger.info("Fade out of #{@_device.name} done")
         @_faderTimeout = null
+        
+    destroy: () ->
+      clearTimeout(@_faderTimeout)
+      @_faderTimeout = null
+      super()
     
   return WakeuplightFadeOutActionProvider
