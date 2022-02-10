@@ -77,7 +77,7 @@ module.exports = (env) ->
       dimLevel += @_maxLevel / time
       current = Math.round(dimLevel)
       
-      if current < @_maxLevel
+      if current <= @_maxLevel
         @_device.getDimlevel().then( (old) =>
           @_device.changeDimlevelTo(current) if current > old
         
