@@ -68,28 +68,31 @@ module.exports = (env) ->
         if simulate
           return Promise.resolve("Would fade out #{@_device.name} over #{@_time.time} #{@_time.unit}")
         else
-          @_device.getDimlevel().then( (dimlevel) =>
+          Promise.delay(2000).then( () => # Delay 2 seconds to allow previous action on device to complete first
+            @_device.getDimlevel()
+          
+          ).then( (dimlevel) =>
             @_maxLevel = dimlevel
-            @_fade(@_time.timeMs / 1000, dimlevel)
+            @_fade(@_time.timeMs / 1000, dimlevel) if dimlevel > @_minLevel
           )
           return Promise.resolve("Starting to fade out #{@_device.name} over #{@_time.time} #{@_time.unit}")
-     
+    
     _fade: (time, dimLevel) =>
-      dimLevel -= @_maxLevel / time
-      current = Math.round(dimLevel)
-      
-      if current >= @_minLevel
-        @_device.getDimlevel().then( (old) =>
-          @_device.changeDimlevelTo(current) if current < old
-        ).then( () =>
+      @_device.getDimlevel().then( (old) =>
+        dimLevel -= @_maxLevel / time
+        current = Math.round(dimLevel)
+        if current <= old and current >= @_minLevel
+          @_device.changeDimlevelTo(current)
           @_faderTimeout = setTimeout(@_fade, 1000, time, dimLevel )
-        )
+        
+        else
+          @_device.turnOff() if @_minLevel is 0
+          clearTimeout(@_faderTimeout)
+          env.logger.info("Fade out of #{@_device.name} done")
+          @_faderTimeout = null
+      )
       
-      else
-        @_device.turnOff() if @_minLevel is 0
-        clearTimeout(@_faderTimeout)
-        env.logger.info("Fade out of #{@_device.name} done")
-        @_faderTimeout = null
+      
         
     destroy: () ->
       clearTimeout(@_faderTimeout)
