@@ -51,54 +51,48 @@ module.exports = (env) ->
         return null
   
   class WakeuplightFadeInActionHandler extends env.actions.ActionHandler
-    constructor: (@framework, @_device, @_time, max) ->
+    constructor: (@framework, @_device, @_time, @_endLevel = 100) ->
       super()
-      @_faderTimeout = null
-      @_maxLevel = max ? 100
-      @_minLevel = 0
 
     setup: ->
       @dependOnDevice(@_device)
       super()
 
     executeAction: (simulate) =>
-      @_play(simulate)
-
-    _play: (simulate) =>
-        if simulate
-          return Promise.resolve("Would fade in #{@_device.name} over #{@_time.time} #{@_time.unit}")
-        else
-          Promise.delay(2000).then( () => # Delay 2 seconds to allow previous action on device to complete first
-            @_device.getDimlevel()
-          
-          ).then( (dimlevel) =>  
-            @_fade(@_time.timeMs / 1000, dimlevel) if dimlevel < @_maxLevel
-          )
-          return Promise.resolve("Starting to fade in #{@_device.name} over #{@_time.time} #{@_time.unit}")
+      if simulate
+        return Promise.resolve("Would fade in #{@_device.name} over #{@_time.time}#{@_time.unit}")
+      
+      else
+        return Promise.delay(2000).then( () => # Delay 2 seconds to allow potential previous action on device to complete first
+          @_device.getDimlevel()
+        
+        ).then( (currentlevel) =>
+          @_fade(@_time.timeMs, currentlevel)
+          Promise.resolve("Starting to fade in #{@_device.name} over #{@_time.time}#{@_time.unit}")
+        )
      
-    _fade: (time, dimLevel) =>
-      @_device.getDimlevel().then( (old) =>
-        dimLevel += @_maxLevel / time
-        current = Math.round(dimLevel)
-        if current <= @_maxLevel and current >= old
-          @_device.changeDimlevelTo(current)
-          @_faderTimeout = setTimeout(@_fade, 1000, time, dimLevel )
+    _fade: (time = 60 * 1000, startLevel) =>
+      return new Promise( (resolve, reject) =>
+        tick = () =>
+          @_device.getDimlevel().then( (currentLevel) =>
+            if currentLevel < @_endLevel
+              
+              @_device.changeDimlevelTo(currentLevel + 1).delay(time / (@_endLevel - startLevel)).then( () => 
+                tick()
+              
+              ).catch( (error) => reject() )
+            
+            else
+              env.logger.info("Fade in of #{@_device.name} completed")
+              resolve()
+          
+          )
+          .catch( (error) => reject(error) )
         
-        else
-          @_device.changeDimlevelTo(@_maxLevel)
-          clearTimeout(@_faderTimeout)
-          env.logger.info("Fade in of #{@_device.name} done")
-          @_faderTimeout = null
-    
+        tick()
       )
-      
-        
-      
-      
     
     destroy: () ->
-      clearTimeout(@_faderTimeout)
-      @_faderTimeout = null
       super()
     
   return WakeuplightFadeInActionProvider
