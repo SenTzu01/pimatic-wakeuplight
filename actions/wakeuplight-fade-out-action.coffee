@@ -64,7 +64,7 @@ module.exports = (env) ->
         return Promise.resolve("Would fade in #{@_device.name} over #{@_time.time}#{@_time.unit}")
       
       else
-        Promise.delay(2000).then( @_fade(@_time.timeMs) ) # Allow to complete potential previous rule action on device
+        setTimeout( @_fade, 2000, @_time.timeMs ) # Allow to complete potential previous rule action on device
         return Promise.resolve("Starting to fade in #{@_device.name} over #{@_time.time}#{@_time.unit}")
      
     _fade: (time = 60 * 1000) =>
