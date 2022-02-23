@@ -17,7 +17,7 @@ module.exports = (env) ->
       
       device = null
       time = null
-      min = null
+      end = null
       match = null
       
       # Try to match the input string with:
@@ -28,7 +28,7 @@ module.exports = (env) ->
         device = d
       
         next.match(' to ').matchNumber( (next, ts) =>    
-          min = ts
+          end = ts
           next.match(' % over ', (next) =>
             next.matchTimeDuration( (next, ts) =>
               time = ts
@@ -41,17 +41,18 @@ module.exports = (env) ->
       if match?
         assert device?
         assert time?
-        assert min?
+        assert end?
         return {
           token: match
           nextInput: input.substring(match.length)
-          actionHandler: new WakeuplightFadeOutActionHandler(@framework, device, time, min)
+          actionHandler: new WakeuplightFadeOutActionHandler(@framework, device, time, end)
         }
       else
         return null
   
   class WakeuplightFadeOutActionHandler extends env.actions.ActionHandler
     constructor: (@framework, @_device, @_time, @_endLevel = 0) ->
+      @_tickTimeout = null
       super()
 
     setup: ->
@@ -60,39 +61,44 @@ module.exports = (env) ->
 
     executeAction: (simulate) =>
       if simulate
-        return Promise.resolve("Would fade out #{@_device.name} over #{@_time.time}#{@_time.unit}")
+        return Promise.resolve("Would fade in #{@_device.name} over #{@_time.time}#{@_time.unit}")
       
       else
-        return Promise.delay(2000).then( () => # Delay 2 seconds to allow potential previous action on device to complete first
-          @_device.getDimlevel()
-        
-        ).then( (currentlevel) =>
-          @_fade(@_time.timeMs, currentlevel)
-          Promise.resolve("Starting to fade out #{@_device.name} over #{@_time.time}#{@_time.unit}")
-        )
+        Promise.delay(2000).then( @_fade(@_time.timeMs) ) # Allow to complete potential previous rule action on device
+        return Promise.resolve("Starting to fade in #{@_device.name} over #{@_time.time}#{@_time.unit}")
      
-    _fade: (time = 60 * 1000, startLevel) =>
+    _fade: (time = 60 * 1000) =>
       return new Promise( (resolve, reject) =>
+        startLevel = 0
+        currentLevel = 0
+        @_device.getDimlevel().then( (dimlevel) => 
+          startLevel = dimlevel
+          currentLevel = dimlevel
+        )
+        
         tick = () =>
-          @_device.getDimlevel().then( (currentLevel) =>
-            if currentLevel > @_endLevel
-              
-              @_device.changeDimlevelTo(currentLevel - 1).delay(time / (startLevel - @_endLevel)).then( () => 
-                tick()
-              
-              ).catch( (error) => reject() )
-            
-            else
-              env.logger.info("Fade in of #{@_device.name} completed")
-              resolve()
+          timeStamp = Date.now()
+          timeDiff = () => Date.now() - timeStamp
           
-          )
-          .catch( (error) => reject(error) )
+          ++currentLevel
+          if currentLevel > @_endLevel
+            @_device.changeDimlevelTo(currentLevel).then( () =>
+              @_tickTimeout = setTimeout(tick, (time / (startLevel - @_endLevel)) - timeDiff())
+            
+            ).catch( (error) => reject() )
+            
+          else
+            env.logger.info("Fade in of #{@_device.name} completed")
+            clearTimeout(@_tickTimeout)
+            @_tickTimeout = undefined
+            resolve()
         
         tick()
       )
       
     destroy: () ->
+      clearTimeout(@_tickTimeout)
+      @_tickTimeout = undefined
       super()
     
   return WakeuplightFadeOutActionProvider
