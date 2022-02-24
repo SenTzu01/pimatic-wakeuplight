@@ -61,39 +61,37 @@ module.exports = (env) ->
 
     executeAction: (simulate) =>
       if simulate
-        return Promise.resolve("Would fade in #{@_device.name} over #{@_time.time}#{@_time.unit}")
+        return Promise.resolve("Would fade out #{@_device.name} over #{@_time.time}#{@_time.unit}")
       
       else
         setTimeout( @_fade, 2000, @_time.timeMs ) # Allow to complete potential previous rule action on device
-        return Promise.resolve("Starting to fade in #{@_device.name} over #{@_time.time}#{@_time.unit}")
+        return Promise.resolve("Starting to fade out #{@_device.name} over #{@_time.time}#{@_time.unit}")
      
     _fade: (time = 60 * 1000) =>
       return new Promise( (resolve, reject) =>
-        startLevel = 0
-        currentLevel = 0
         @_device.getDimlevel().then( (dimlevel) => 
           startLevel = dimlevel
           currentLevel = dimlevel
-        )
         
-        tick = () =>
-          timeStamp = Date.now()
-          timeDiff = () => Date.now() - timeStamp
+          tick = () =>
+            timeStamp = Date.now()
+            timeDiff = () => Date.now() - timeStamp
+            
+            --currentLevel
+            if currentLevel >= @_endLevel
+              @_device.changeDimlevelTo(currentLevel).then( () =>
+                @_tickTimeout = setTimeout(tick, (time / (startLevel - @_endLevel)) - timeDiff())
+              
+              ).catch( (error) => reject() )
+              
+            else
+              env.logger.info("Fade out of #{@_device.name} completed")
+              clearTimeout(@_tickTimeout)
+              @_tickTimeout = undefined
+              resolve()
           
-          ++currentLevel
-          if currentLevel > @_endLevel
-            @_device.changeDimlevelTo(currentLevel).then( () =>
-              @_tickTimeout = setTimeout(tick, (time / (startLevel - @_endLevel)) - timeDiff())
-            
-            ).catch( (error) => reject() )
-            
-          else
-            env.logger.info("Fade in of #{@_device.name} completed")
-            clearTimeout(@_tickTimeout)
-            @_tickTimeout = undefined
-            resolve()
-        
-        tick()
+          tick()
+        )
       )
       
     destroy: () ->
